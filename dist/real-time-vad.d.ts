@@ -1,6 +1,5 @@
 import * as ortInstance from "onnxruntime-web";
-import { FrameProcessor, FrameProcessorOptions } from "./frame-processor";
-import { Message } from "./messages";
+import { FrameProcessor, FrameProcessorEvent, FrameProcessorOptions } from "./frame-processor";
 import { OrtOptions, SpeechProbabilities } from "./models";
 export declare const DEFAULT_MODEL = "legacy";
 interface RealTimeVADCallbacks {
@@ -56,6 +55,7 @@ export declare class MicVAD {
     pause: () => void;
     start: () => void;
     destroy: () => void;
+    setOptions: (options: any) => void;
 }
 export declare class AudioNodeVAD {
     ctx: AudioContext;
@@ -73,13 +73,9 @@ export declare class AudioNodeVAD {
     start: () => void;
     receive: (node: AudioNode) => void;
     processFrame: (frame: Float32Array) => Promise<void>;
-    handleFrameProcessorEvent: (ev: Partial<{
-        probs: SpeechProbabilities;
-        msg: Message;
-        audio: Float32Array;
-        frame: Float32Array;
-    }>) => void;
+    handleFrameProcessorEvent: (ev: FrameProcessorEvent) => void;
     destroy: () => void;
+    setFrameProcessorOptions: (options: any) => void;
 }
 export {};
 //# sourceMappingURL=real-time-vad.d.ts.map

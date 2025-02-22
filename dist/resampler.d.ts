@@ -6,10 +6,13 @@ interface ResamplerOptions {
 export declare class Resampler {
     options: ResamplerOptions;
     inputBuffer: Array<number>;
+    private lastFilteredValue;
+    private readonly FILTER_COEFFICIENT;
     constructor(options: ResamplerOptions);
     process: (audioFrame: Float32Array) => Float32Array[];
-    stream: (audioInput: Float32Array) => AsyncGenerator<any, void, unknown>;
+    stream(audioInput: Float32Array): AsyncGenerator<Float32Array, void, unknown>;
     private hasEnoughDataForFrame;
+    private lowPassFilter;
     private generateOutputFrame;
 }
 export {};

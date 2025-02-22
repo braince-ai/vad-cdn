@@ -42,7 +42,7 @@ const getDefaultRealTimeVADOptions = (model) => {
         : frame_processor_1.defaultLegacyFrameProcessorOptions;
     return {
         ...frameProcessorOptions,
-        onFrameProcessed: (probabilities) => { },
+        onFrameProcessed: (probabilities, frame) => { },
         onVADMisfire: () => {
             logging_1.log.debug("VAD misfire");
         },
@@ -55,7 +55,7 @@ const getDefaultRealTimeVADOptions = (model) => {
         onSpeechRealStart: () => {
             logging_1.log.debug("Detected real speech start");
         },
-        baseAssetPath: "https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@0.0.22/dist/",
+        baseAssetPath: "https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@latest/dist/",
         onnxWASMBasePath: "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.14.0/dist/",
         stream: undefined,
         ortConfig: undefined,
@@ -118,6 +118,9 @@ class MicVAD {
             this.audioNodeVAD.destroy();
             this.audioContext.close();
         };
+        this.setOptions = (options) => {
+            this.audioNodeVAD.setFrameProcessorOptions(options);
+        };
     }
 }
 exports.MicVAD = MicVAD;
@@ -161,8 +164,7 @@ class AudioNodeVAD {
         this.options = options;
         this.bufferIndex = 0;
         this.pause = () => {
-            const ev = this.frameProcessor.pause();
-            this.handleFrameProcessorEvent(ev);
+            this.frameProcessor.pause(this.handleFrameProcessorEvent);
         };
         this.start = () => {
             this.frameProcessor.resume();
@@ -171,14 +173,13 @@ class AudioNodeVAD {
             node.connect(this.audioNode);
         };
         this.processFrame = async (frame) => {
-            const ev = await this.frameProcessor.process(frame);
-            this.handleFrameProcessorEvent(ev);
+            await this.frameProcessor.process(frame, this.handleFrameProcessorEvent);
         };
         this.handleFrameProcessorEvent = (ev) => {
-            if (ev.probs !== undefined) {
-                this.options.onFrameProcessed(ev.probs, ev.frame);
-            }
             switch (ev.msg) {
+                case messages_1.Message.FrameProcessed:
+                    this.options.onFrameProcessed(ev.probs, ev.frame);
+                    break;
                 case messages_1.Message.SpeechStart:
                     this.options.onSpeechStart();
                     break;
@@ -201,6 +202,12 @@ class AudioNodeVAD {
             }
             this.audioNode.disconnect();
             this.gainNode?.disconnect();
+        };
+        this.setFrameProcessorOptions = (options) => {
+            this.frameProcessor.options = {
+                ...this.frameProcessor.options,
+                ...options,
+            };
         };
         this.frameProcessor = frameProcessor;
     }

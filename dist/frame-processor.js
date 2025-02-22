@@ -67,87 +67,89 @@ class FrameProcessor {
         this.redemptionCounter = 0;
         this.speechFrameCount = 0;
         this.active = false;
+        this.speechRealStartFired = false;
         this.reset = () => {
             this.speaking = false;
+            this.speechRealStartFired = false;
             this.audioBuffer = [];
             this.modelResetFunc();
             this.redemptionCounter = 0;
             this.speechFrameCount = 0;
         };
-        this.pause = () => {
+        this.pause = (handleEvent) => {
             this.active = false;
             if (this.options.submitUserSpeechOnPause) {
-                return this.endSegment();
+                this.endSegment(handleEvent);
             }
             else {
                 this.reset();
-                return {};
             }
         };
         this.resume = () => {
             this.active = true;
         };
-        this.endSegment = () => {
+        this.endSegment = (handleEvent) => {
             const audioBuffer = this.audioBuffer;
             this.audioBuffer = [];
             const speaking = this.speaking;
             this.reset();
-            const speechFrameCount = audioBuffer.reduce((acc, item) => {
-                return acc + +item.isSpeech;
-            }, 0);
             if (speaking) {
+                const speechFrameCount = audioBuffer.reduce((acc, item) => {
+                    return item.isSpeech ? (acc + 1) : acc;
+                }, 0);
                 if (speechFrameCount >= this.options.minSpeechFrames) {
                     const audio = concatArrays(audioBuffer.map((item) => item.frame));
-                    return { msg: messages_1.Message.SpeechEnd, audio };
+                    handleEvent({ msg: messages_1.Message.SpeechEnd, audio });
                 }
                 else {
-                    return { msg: messages_1.Message.VADMisfire };
+                    handleEvent({ msg: messages_1.Message.VADMisfire });
                 }
             }
             return {};
         };
-        this.process = async (frame) => {
+        this.process = async (frame, handleEvent) => {
             if (!this.active) {
-                return {};
+                return;
             }
             const probs = await this.modelProcessFunc(frame);
             const isSpeech = probs.isSpeech >= this.options.positiveSpeechThreshold;
+            handleEvent({ probs, msg: messages_1.Message.FrameProcessed, frame });
             this.audioBuffer.push({
                 frame,
                 isSpeech,
             });
             if (isSpeech) {
                 this.speechFrameCount++;
-            }
-            if (probs.isSpeech >= this.options.positiveSpeechThreshold &&
-                this.redemptionCounter) {
                 this.redemptionCounter = 0;
             }
-            if (probs.isSpeech >= this.options.positiveSpeechThreshold &&
-                !this.speaking) {
+            if (isSpeech && !this.speaking) {
                 this.speaking = true;
-                return { probs, msg: messages_1.Message.SpeechStart, frame };
+                handleEvent({ msg: messages_1.Message.SpeechStart });
             }
             if (this.speaking &&
-                this.speechFrameCount === this.options.minSpeechFrames) {
-                return { probs, msg: messages_1.Message.SpeechRealStart, frame };
+                this.speechFrameCount === this.options.minSpeechFrames &&
+                !this.speechRealStartFired) {
+                this.speechRealStartFired = true;
+                handleEvent({ msg: messages_1.Message.SpeechRealStart });
             }
             if (probs.isSpeech < this.options.negativeSpeechThreshold &&
                 this.speaking &&
                 ++this.redemptionCounter >= this.options.redemptionFrames) {
                 this.redemptionCounter = 0;
+                this.speechFrameCount = 0;
                 this.speaking = false;
+                this.speechRealStartFired = false;
                 const audioBuffer = this.audioBuffer;
                 this.audioBuffer = [];
                 const speechFrameCount = audioBuffer.reduce((acc, item) => {
-                    return acc + +item.isSpeech;
+                    return item.isSpeech ? (acc + 1) : acc;
                 }, 0);
                 if (speechFrameCount >= this.options.minSpeechFrames) {
                     const audio = concatArrays(audioBuffer.map((item) => item.frame));
-                    return { probs, msg: messages_1.Message.SpeechEnd, audio, frame };
+                    handleEvent({ msg: messages_1.Message.SpeechEnd, audio });
                 }
                 else {
-                    return { probs, msg: messages_1.Message.VADMisfire, frame };
+                    handleEvent({ msg: messages_1.Message.VADMisfire });
                 }
             }
             if (!this.speaking) {
@@ -156,7 +158,6 @@ class FrameProcessor {
                 }
                 this.speechFrameCount = 0;
             }
-            return { probs, frame };
         };
         this.audioBuffer = [];
         this.reset();

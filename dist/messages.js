@@ -9,5 +9,6 @@ var Message;
     Message["SpeechEnd"] = "SPEECH_END";
     Message["SpeechStop"] = "SPEECH_STOP";
     Message["SpeechRealStart"] = "SPEECH_REAL_START";
+    Message["FrameProcessed"] = "FRAME_PROCESSED";
 })(Message || (exports.Message = Message = {}));
 //# sourceMappingURL=messages.js.map

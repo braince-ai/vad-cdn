@@ -6,17 +6,18 @@ interface NonRealTimeVADSpeechData {
     end: number;
 }
 export interface NonRealTimeVADOptions extends FrameProcessorOptions, OrtOptions {
+    modelURL: string;
+    modelFetcher: (path: string) => Promise<ArrayBuffer>;
 }
 export declare const defaultNonRealTimeVADOptions: NonRealTimeVADOptions;
-export declare class PlatformAgnosticNonRealTimeVAD {
+export declare class NonRealTimeVAD {
     modelFetcher: ModelFetcher;
     ort: OrtModule;
     options: NonRealTimeVADOptions;
-    frameProcessor: FrameProcessorInterface | undefined;
-    static _new<T extends PlatformAgnosticNonRealTimeVAD>(modelFetcher: ModelFetcher, ort: OrtModule, options?: Partial<NonRealTimeVADOptions>): Promise<T>;
-    constructor(modelFetcher: ModelFetcher, ort: OrtModule, options: NonRealTimeVADOptions);
-    init: () => Promise<void>;
-    run: (inputAudio: Float32Array, sampleRate: number) => AsyncGenerator<NonRealTimeVADSpeechData>;
+    frameProcessor: FrameProcessorInterface;
+    static new(options?: Partial<NonRealTimeVADOptions>): Promise<NonRealTimeVAD>;
+    constructor(modelFetcher: ModelFetcher, ort: OrtModule, options: NonRealTimeVADOptions, frameProcessor: FrameProcessorInterface);
+    run(inputAudio: Float32Array, sampleRate: number): AsyncGenerator<NonRealTimeVADSpeechData>;
 }
 export {};
 //# sourceMappingURL=non-real-time-vad.d.ts.map

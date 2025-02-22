@@ -38,12 +38,8 @@ export declare const defaultV5FrameProcessorOptions: FrameProcessorOptions;
 export declare function validateOptions(options: FrameProcessorOptions): void;
 export interface FrameProcessorInterface {
     resume: () => void;
-    process: (arr: Float32Array) => Promise<{
-        probs?: SpeechProbabilities;
-        msg?: Message;
-        audio?: Float32Array;
-    }>;
-    endSegment: () => {
+    process: (arr: Float32Array, handleEvent: (event: FrameProcessorEvent) => any) => Promise<any>;
+    endSegment: (handleEvent: (event: FrameProcessorEvent) => any) => {
         msg?: Message;
         audio?: Float32Array;
     };
@@ -60,49 +56,26 @@ export declare class FrameProcessor implements FrameProcessorInterface {
     redemptionCounter: number;
     speechFrameCount: number;
     active: boolean;
+    speechRealStartFired: boolean;
     constructor(modelProcessFunc: (frame: Float32Array) => Promise<SpeechProbabilities>, modelResetFunc: () => any, options: FrameProcessorOptions);
     reset: () => void;
-    pause: () => {
-        msg: Message;
-        audio: Float32Array;
-    } | {
-        msg: Message;
-        audio?: undefined;
-    } | {
-        msg?: undefined;
-        audio?: undefined;
-    };
+    pause: (handleEvent: (event: FrameProcessorEvent) => any) => void;
     resume: () => void;
-    endSegment: () => {
-        msg: Message;
-        audio: Float32Array;
-    } | {
-        msg: Message;
-        audio?: undefined;
-    } | {
-        msg?: undefined;
-        audio?: undefined;
-    };
-    process: (frame: Float32Array) => Promise<{
-        probs?: undefined;
-        msg?: undefined;
-        frame?: undefined;
-        audio?: undefined;
-    } | {
-        probs: SpeechProbabilities;
-        msg: Message;
-        frame: Float32Array;
-        audio?: undefined;
-    } | {
-        probs: SpeechProbabilities;
-        msg: Message;
-        audio: Float32Array;
-        frame: Float32Array;
-    } | {
-        probs: SpeechProbabilities;
-        frame: Float32Array;
-        msg?: undefined;
-        audio?: undefined;
-    }>;
+    endSegment: (handleEvent: (event: FrameProcessorEvent) => any) => {};
+    process: (frame: Float32Array, handleEvent: (event: FrameProcessorEvent) => any) => Promise<void>;
 }
+export type FrameProcessorEvent = {
+    msg: Message.VADMisfire;
+} | {
+    msg: Message.SpeechStart;
+} | {
+    msg: Message.SpeechRealStart;
+} | {
+    msg: Message.SpeechEnd;
+    audio: Float32Array;
+} | {
+    msg: Message.FrameProcessed;
+    probs: SpeechProbabilities;
+    frame: Float32Array;
+};
 //# sourceMappingURL=frame-processor.d.ts.map
